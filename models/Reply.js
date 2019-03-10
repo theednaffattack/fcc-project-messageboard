@@ -4,10 +4,11 @@ const replySchema = new mongoose.Schema(
   {
     text: String,
     delete_password: String,
-    thread_id: { type: mongoose.Schema.Types.ObjectId, ref: "Thread" }
+    thread_id: { type: mongoose.Schema.Types.ObjectId, ref: "Thread" },
+    reported: { type: Boolean, default: false }
   },
   {
-    timestamps: true // created_at, updatedAt
+    timestamps: true // createdAt, updatedAt
   }
 );
 

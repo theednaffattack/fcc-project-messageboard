@@ -3,7 +3,8 @@ const mongoose = require("mongoose");
 const threadSchema = new mongoose.Schema(
   {
     text: String,
-    reported: Boolean,
+    board: String,
+    reported: { type: Boolean, default: false },
     delete_password: String,
     replies: [{ type: mongoose.Schema.Types.ObjectId, ref: "Reply" }]
   },

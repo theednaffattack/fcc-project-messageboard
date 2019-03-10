@@ -11,68 +11,245 @@ var chai = require("chai");
 var assert = chai.assert;
 var server = require("../server");
 
+let replyPassword = "password";
+let requestPassword2 = "";
+
+let replyId = "";
+let testThreadId1 = "";
+let board = "testing";
+
 chai.use(chaiHttp);
 
 suite("Functional Tests", function() {
   suite("API ROUTING FOR /api/threads/:board", function() {
-    suite("POST", function() {});
+    suite("POST", function() {
+      test("Post Thread - responds status 200 when posting proper data", function(done) {
+        chai
+          .request(server)
+          .post("/api/threads/testing")
+          .send({
+            text: "Test",
+            delete_password: "abc123",
+            board: "testing"
+          }) // attach the payload, encoded as JSON
+          .end(function(err, res) {
+            // Send the request. Pass a Node callback
+
+            assert.equal(res.status, 200, "response status should be 200");
+            done();
+          });
+      });
+    });
 
     suite("GET", function() {
-      //       // If no name is passed, the endpoint responds with 'hello Guest'.
-      //       test('Test GET /hello with no name',  function(done){ // Don't forget the callback...
-      //          chai.request(server)             // 'server' is the Express App
-      //           .get('/hello')                  // http_method(url). NO NAME in the query !
-      //           .end(function(err, res){        // res is the response object
-      //             // Test the status and the text response (see the example above).
-      //             // Please follow the order -status, -text. We rely on that in our tests.
-      //             // It should respond 'Hello Guest'
-      //             assert.equal(res.status, 200, 'response status should be 200');
-      //             assert.equal(res.text, 'hello Guest', 'response status should be Guest');
-      //             done();   // Always call the 'done()' callback when finished.
-      //           });
-      //       });
-      //       /**  Another one... **/
-      //       test('Test GET /hello with your name',  function(done){ // Don't forget the callback...
-      //          chai.request(server)             // 'server' is the Express App
-      //           .get('/hello?name=Eddie') /** <=== Put your name in the query **/
-      //           .end(function(err, res){        // res is the response object
-      //             // Your tests here.
-      //             // Replace assert.fail(). Make the test pass.
-      //             // Test the status and the text response. Follow the test order like above.
-      //             assert.equal(res.status, 200, 'resopnse status should be 200');
-      //              assert.equal(res.text, 'hello Eddie', 'response status should be Eddie'/** <==  Put your name here **/);
-      //             done();   // Always call the 'done()' callback when finished.
-      //           });
+      // If no name is passed, the endpoint responds with 'hello Guest'.
+      test("GET an *array* of the most recent 10 bumped threads on the board with only the most recent 3 replies", function(done) {
+        // Don't forget the callback...
+        chai
+          .request(server)
+          .get("/api/threads/testing")
+          .end(function(err, res) {
+            assert.equal(res.status, 200, "response status should be 200");
+            assert.isArray(res.body, "req.body should be an Array");
+            assert.isAtMost(
+              res.body.length,
+              10,
+              "req.body is 10 threads long at most"
+            );
+
+            assert.isArray(
+              res.body[0].replies,
+              "req.body.replies should be an Array"
+            );
+
+            assert.property(res.body[0], "replies", "`replies` is present");
+
+            assert.isAtMost(
+              res.body[0].replies.length,
+              3,
+              "req.body.replies is 3 replies long at most"
+            );
+
+            assert.property(res.body[0], "_id", "`_id` is present");
+            assert.property(res.body[0], "text", "`text` is present");
+            assert.property(
+              res.body[0],
+              "created_on",
+              "`created_on` is present"
+            );
+            assert.property(res.body[0], "bumped_on", "`bumped_on` is present");
+            assert.notProperty(
+              res.body[0],
+              "delete_password",
+              "`delete_password` is not present"
+            );
+            assert.notProperty(
+              res.body[0],
+              "reported",
+              "`reported` is not present"
+            );
+
+            testThreadId1 = res.body[0]._id;
+            testThreadId2 = res.body[1]._id;
+            done(); // Always call the 'done()' callback when finished.
+          });
+      });
     });
-  });
 
-  suite("DELETE", function() {});
+    suite("DELETE", function() {
+      // don't delete with the wrong password
+      test("Don't delete a thread when posting the wrong password", function(done) {
+        chai
+          .request(server)
+          .delete("/api/threads/testing")
+          .send({
+            delete_password: "wrong",
+            thread_id: testThreadId1
+          })
+          .end(function(err, res) {
+            if (err) {
+              console.error("delete error" + err);
+              done();
+            }
+            // assert.equal(res.status, 200, "response status should be 200");
+            assert.equal(res.text, "incorrect password");
+            done(); // Always call the 'done()' callback when finished.
+          });
+      });
 
-  suite("PUT", function() {
-    //       test('#example - responds with appropriate JSON data when sending {surname: "Polo"}',  function(done){
-    //          chai.request(server)
-    //           .put('/travellers')         // note the PUT method
-    //           .send({surname: 'Polo'})    // attach the payload, encoded as JSON
-    //           .end(function(err, res){    // Send the request. Pass a Node callback
-    //             assert.equal(res.status, 200, 'response status should be 200');
-    //             assert.equal(res.type, 'application/json', "Response should be json");
-    //             // res.body contains the response parsed as a JS object, when appropriate
-    //             // (i.e the response type is JSON)
-    //             assert.equal(res.body.name, 'Marco', 'res.body.name should be "Marco"');
-    //             assert.equal(res.body.surname, 'Polo', 'res.body.surname should be "Polo"' );
-    //             // call 'done()' when... done
-    //             done();
-    //           });
-    //     });
-  });
+      // don't delete with the wrong thread_id
+      test("Don't delete a thread when posting the wrong thread_id", function(done) {
+        chai
+          .request(server)
+          .delete("/api/threads/testing")
+          .send({
+            delete_password: "abc123",
+            thread_id: "junk"
+          })
+          .end(function(err, res) {
+            assert.equal(res.text, "incorrect thread_id");
+            done();
+          });
+      });
+      // don't delete with the wrong combination
+      // delete when both are correct
+    });
 
-  suite("API ROUTING FOR /api/replies/:board", function() {
-    suite("POST", function() {});
+    suite("PUT", function() {
+      //       test('#example - responds with appropriate JSON data when sending {surname: "Polo"}',  function(done){
+      //          chai.request(server)
+      //           .put('/travellers')         // note the PUT method
+      //           .send({surname: 'Polo'})    // attach the payload, encoded as JSON
+      //           .end(function(err, res){    // Send the request. Pass a Node callback
+      //             assert.equal(res.status, 200, 'response status should be 200');
+      //             assert.equal(res.type, 'application/json', "Response should be json");
+      //             // res.body contains the response parsed as a JS object, when appropriate
+      //             // (i.e the response type is JSON)
+      //             assert.equal(res.body.name, 'Marco', 'res.body.name should be "Marco"');
+      //             assert.equal(res.body.surname, 'Polo', 'res.body.surname should be "Polo"' );
+      //             // call 'done()' when... done
+      //             done();
+      //           });
+      //     });
+    });
 
-    suite("GET", function() {});
+    suite("API ROUTING FOR /api/replies/:board", function() {
+      // I can POST a reply to a thead on a specific board by passing
+      // form data text, delete_password, & thread_id to /api/replies/{board}
+      // and it will also update the bumped_on date to the comments date.
+      // (Recomend res.redirect to thread page /b/{board}/{thread_id})
+      // In the thread's 'replies' array will be saved _id, text, created_on,
+      // delete_password, & reported.
+      suite("POST", function() {
+        test("Post reply - responds status 200 when posting proper data", function(done) {
+          chai
+            .request(server)
+            .post("/api/replies/testing")
+            .send({
+              text: "my reply post",
+              delete_password: replyPassword,
+              thread_id: testThreadId1
+            })
+            .end(function(err, res) {
+              assert.equal(res.status, 200, "response status should be 200");
 
-    suite("PUT", function() {});
+              done();
+            });
+        });
+      });
 
-    suite("DELETE", function() {});
+      // I can GET an entire thread with all it's replies from
+      // /api/replies/{board}?thread_id={thread_id}. Also hiding the same fields.
+      suite("GET", function() {
+        test("Get all replies from thread with `thread_id` and board", function(done) {
+          chai
+            .request(server)
+            .get(`/api/replies/testing?thread_id=${testThreadId1}`)
+            .end(function(err, res) {
+              assert.equal(res.status, 200, "response status should be 200");
+              console.log(Object.keys(res.body.replies));
+              replyId = res.body._id;
+              assert.property(res.body, "text");
+              assert.property(res.body, "created_on");
+              assert.property(res.body, "bumped_on");
+              assert.notProperty(res.body, "reported");
+              assert.notProperty(res.body, "delete_password");
+              assert.property(res.body, "replies");
+              assert.isArray(res.body.replies);
+              if (res.body.replies.length > 0) {
+                assert.property(res.body.replies[0], "_id");
+                assert.property(res.body.replies[0], "text");
+                assert.property(res.body.replies[0], "created_on");
+                assert.notProperty(res.body.replies[0], "reported");
+                assert.notProperty(res.body.replies[0], "delete_password");
+                testReplyId = res.body.replies[0]._id;
+              }
+              done();
+              // if (res.body.replies.length > 0) {
+              //   assert.isArray(
+              //     res.body.replies[0],
+              //     "res.body.replies[0] should be an Array"
+              //   );
+              //   assert.notProperty(
+              //     res.body.replies[0],
+              //     "reported",
+              //     "reported should not be present"
+              //   );
+              // }
+            });
+        });
+      });
+
+      suite("PUT", function() {
+        // update a reply's report property to true
+        // /api/threads/{board}
+        test("Change a reply's reported value to true", function(done) {
+          // chai
+          //   .request(server)
+          //   .put(`/api/replies/${board}`)
+          //   .send({
+          //     thread_id: testThreadId1,
+          //     reply_id: replyId,
+          //     board: board
+          //   })
+          //   .end(function(err, res) {
+          //     assert.equal(
+          //       res.text,
+          //       "success",
+          //       "Expect response text to equal `success`"
+          //     );
+          //     done();
+          //   });
+          done();
+        });
+      });
+
+      suite("DELETE", function() {
+        // don't delete with the wrong password
+        // don't delete with the wrong thread_id
+        // don't delete with the wrong combination
+        // delete when both are correct
+      });
+    });
   });
 });
