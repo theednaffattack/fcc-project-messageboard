@@ -165,7 +165,7 @@ suite("Functional Tests", function() {
           .end(function(err, res) {
             if (err) console.error("TEST suite error `put command`: " + err);
             // console.log("RESPONSE TEXT");
-            // console.log(res.text);
+            // console.log(res.text); hide
             assert.equal(
               res.text,
               "success",
