@@ -68,14 +68,18 @@ module.exports = function(app) {
             replies
           } = thread.toObject();
 
-          let [first, second, third, ...theRest] = replies;
+          newObj.replycount = replies.length;
+          let truncReplies = replies;
+          if (replies.length > 3) {
+            truncReplies.length = 3;
+          }
 
           newObj.text = text;
           newObj._id = _id;
           newObj.created_on = created_on;
           newObj.bumped_on = bumped_on;
-          newObj.replycount = replies.length;
-          newObj.replies = replies.length > 0 ? [first, second, third] : [];
+          // newObj.replies = replies.length > 0 ? [first, second, third] : [];
+          newObj.replies = truncReplies.filter(Boolean);
 
           return newObj;
         });
@@ -198,9 +202,6 @@ module.exports = function(app) {
           replies
         };
 
-        console.log("I'm at the bottom");
-        // console.log(docs);
-        console.log(returnObj);
         res.status(200).json(returnObj);
       });
     // res.send({ status: checkObject });

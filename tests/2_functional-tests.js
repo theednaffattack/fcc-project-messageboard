@@ -124,33 +124,56 @@ suite("Functional Tests", function() {
           .delete("/api/threads/testing")
           .send({
             delete_password: "abc123",
-            thread_id: "junk"
+            thread_id: "0000001817a0904dda175c34"
           })
           .end(function(err, res) {
             assert.equal(res.text, "incorrect thread_id");
             done();
           });
       });
-      // don't delete with the wrong combination
       // delete when both are correct
+      test("Delete a Thread when `thread_id and password` are both correct", function(done) {
+        chai
+          .request(server)
+          .delete("/api/threads/testing")
+          .send({
+            delete_password: "abc123",
+            thread_id: testThreadId2
+          })
+          .end(function(err, res) {
+            if (err) console.error("assertion error: " + err);
+            assert.equal(res.text, "success");
+            done();
+          });
+      });
     });
 
     suite("PUT", function() {
-      //       test('#example - responds with appropriate JSON data when sending {surname: "Polo"}',  function(done){
-      //          chai.request(server)
-      //           .put('/travellers')         // note the PUT method
-      //           .send({surname: 'Polo'})    // attach the payload, encoded as JSON
-      //           .end(function(err, res){    // Send the request. Pass a Node callback
-      //             assert.equal(res.status, 200, 'response status should be 200');
-      //             assert.equal(res.type, 'application/json', "Response should be json");
-      //             // res.body contains the response parsed as a JS object, when appropriate
-      //             // (i.e the response type is JSON)
-      //             assert.equal(res.body.name, 'Marco', 'res.body.name should be "Marco"');
-      //             assert.equal(res.body.surname, 'Polo', 'res.body.surname should be "Polo"' );
-      //             // call 'done()' when... done
-      //             done();
-      //           });
-      //     });
+      // update a reply's report property to true
+      // /api/threads/{board}
+      test("Change a thread's `reported` value to true", function(done) {
+        console.log("YOOOOOOOOOOOOOOO testThreadId2");
+        console.log(testThreadId2);
+        console.log(board);
+        chai
+          .request(server)
+          .put(`/api/threads/${board}`)
+          .send({
+            report_id: testThreadId2, // testThreadId1,
+            board: board
+          })
+          .end(function(err, res) {
+            if (err) console.error("TEST suite error `put command`: " + err);
+            // console.log("RESPONSE TEXT");
+            // console.log(res.text);
+            assert.equal(
+              res.text,
+              "success",
+              "Expect response text to equal `success`"
+            );
+            done();
+          });
+      });
     });
 
     suite("API ROUTING FOR /api/replies/:board", function() {
@@ -188,7 +211,6 @@ suite("Functional Tests", function() {
             .end(function(err, res) {
               assert.equal(res.status, 200, "response status should be 200");
               console.log(Object.keys(res.body.replies));
-              replyId = res.body._id;
               assert.property(res.body, "text");
               assert.property(res.body, "created_on");
               assert.property(res.body, "bumped_on");
@@ -198,11 +220,11 @@ suite("Functional Tests", function() {
               assert.isArray(res.body.replies);
               if (res.body.replies.length > 0) {
                 assert.property(res.body.replies[0], "_id");
+                replyId = res.body.replies[0]._id;
                 assert.property(res.body.replies[0], "text");
                 assert.property(res.body.replies[0], "created_on");
                 assert.notProperty(res.body.replies[0], "reported");
                 assert.notProperty(res.body.replies[0], "delete_password");
-                testReplyId = res.body.replies[0]._id;
               }
               done();
               // if (res.body.replies.length > 0) {
@@ -224,31 +246,77 @@ suite("Functional Tests", function() {
         // update a reply's report property to true
         // /api/threads/{board}
         test("Change a reply's reported value to true", function(done) {
-          // chai
-          //   .request(server)
-          //   .put(`/api/replies/${board}`)
-          //   .send({
-          //     thread_id: testThreadId1,
-          //     reply_id: replyId,
-          //     board: board
-          //   })
-          //   .end(function(err, res) {
-          //     assert.equal(
-          //       res.text,
-          //       "success",
-          //       "Expect response text to equal `success`"
-          //     );
-          //     done();
-          //   });
-          done();
+          chai
+            .request(server)
+            .put(`/api/replies/${board}`)
+            .send({
+              thread_id: testThreadId1, // testThreadId1,
+              reply_id: replyId,
+              board: board
+            })
+            .end(function(err, res) {
+              console.log("RESPONSE BODY");
+              console.log(res.text);
+              assert.equal(
+                res.text,
+                "success",
+                "Expect response text to equal `success`"
+              );
+              done();
+            });
         });
       });
 
       suite("DELETE", function() {
         // don't delete with the wrong password
-        // don't delete with the wrong thread_id
-        // don't delete with the wrong combination
+        test("Don't delete a reply when posting the wrong password", function(done) {
+          chai
+            .request(server)
+            .delete("/api/replies/testing")
+            .send({
+              delete_password: "wrong",
+              reply_id: replyId
+            })
+            .end(function(err, res) {
+              if (err) {
+                console.error("delete error" + err);
+                done();
+              }
+              // assert.equal(res.status, 200, "response status should be 200");
+              assert.equal(res.text, "incorrect password");
+              done(); // Always call the 'done()' callback when finished.
+            });
+        });
+
+        // don't delete with the wrong reply_id
+        test("Don't delete a reply when posting the wrong reply_id", function(done) {
+          chai
+            .request(server)
+            .delete("/api/replies/testing")
+            .send({
+              delete_password: replyPassword,
+              reply_id: "0000001817a0904dda175c33"
+            })
+            .end(function(err, res) {
+              assert.equal(res.text, "incorrect reply_id");
+              done();
+            });
+        });
         // delete when both are correct
+        test("Delete a Thread when `reply_id and password` are both correct", function(done) {
+          chai
+            .request(server)
+            .delete("/api/replies/testing")
+            .send({
+              delete_password: replyPassword,
+              reply_id: replyId
+            })
+            .end(function(err, res) {
+              if (err) console.error("assertion error: " + err);
+              assert.equal(res.text, "success");
+              done();
+            });
+        });
       });
     });
   });

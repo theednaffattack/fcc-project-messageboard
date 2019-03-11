@@ -69,7 +69,9 @@
               console.log(rep);
               thread.push('<div class="reply">');
               thread.push(
-                '<p class="id">id: ' + rep._id + " (" + rep.created_on + ")</p>"
+                '<p class="id">id: ' + rep
+                  ? rep._id
+                  : "nope" + " (" + rep.created_on + ")</p>"
               );
               thread.push(
                 '<form id="reportReply"><input type="hidden" name="thread_id" value="' +
